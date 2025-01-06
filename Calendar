@@ -1,0 +1,54 @@
+from selenium import webdriver
+from time import sleep
+import datetime
+from selenium.webdriver import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+
+file = open("log.txt", "w")
+option = webdriver.ChromeOptions()
+option.add_experimental_option("detach", True)
+#option.add_argument("--headless")
+driver = webdriver.Chrome(options = option)
+
+driver.get('https://demoqa.com/date-picker')
+driver.maximize_window()
+file.write('Opening the window is OK\n')
+
+date_input = driver.find_element(By.XPATH,'//*[@id="datePickerMonthYearInput"]')
+date_input.send_keys(Keys.CONTROL + 'a')
+print('Выделение текста в форме')
+file.write('Highlighting is OK\n')
+sleep(1)
+date_input.send_keys(Keys.DELETE)
+file.write('Delete is OK\n')
+sleep(1)
+print('Удаление текста в форме')
+# Получаем текущую дату
+current_date = datetime.datetime.now()
+print('Получаем текущую дату в стандартном формате', current_date.strftime('%d.%B.%Y %H:%M:%S'))
+file.write('current date is OK\n')
+date_input.send_keys(current_date.strftime('%d.%m.%Y'))
+print('Текущая дата вставлена в форму')
+file.write('Inserting into the form is OK\n')
+sleep(1)
+# Создаем timedelta на 10 дней
+delta = datetime.timedelta(days=10)
+# Получаем дату, которая на 10 дней позже текущей
+new_date = current_date + delta
+# Форматируем дату в европейском формате
+formatted_date = new_date.strftime('%d-%B-%Y %H:%M:%p')
+#Открываем новое окно
+driver.get('https://the-internet.herokuapp.com/key_presses?')
+file.write('Opening the new window is OK\n')
+print('Новое окно открыто')
+sleep(1)
+# Вводим новую дату в поле
+date_input = driver.find_element(By.XPATH,'//*[@id="target"]')
+date_input.send_keys(formatted_date)
+print('Новая дата установлена', formatted_date)
+file.write('The current date is inserted is OK\n')
+print('Конец программы')
+
+#Закрытие веб-драйвера
+   #driver.close()
