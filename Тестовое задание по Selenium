@@ -1,0 +1,329 @@
+from selenium import webdriver
+from time import sleep
+import datetime
+from selenium.webdriver import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.common.action_chains import ActionChains
+
+file = open("log.txt", "w")
+#driver = webdriver.Chrome()
+option = webdriver.ChromeOptions()
+option.add_experimental_option("detach", True)
+option.add_argument("--headless")
+driver = webdriver.Chrome(options=option)
+
+#вызов страницы и драйвера-------------
+def set_up():
+    driver.get('https://www.saucedemo.com/')
+    driver.maximize_window()
+
+#Вход в форме логин/пароль-----------
+def login():
+    user_name = driver.find_element(By.XPATH, '//input[@id="user-name"]')
+    login = "standard_user"
+    user_name.send_keys(login)
+    file.write("Success write login\n")
+
+    pass_word = driver.find_element(By.XPATH, '//*[@id="password"]')
+    password = "secret_sauce"
+    pass_word.send_keys(password)
+    file.write("Success write password\n")
+
+    sleep(2)
+    login_button = driver.find_element(By.ID, "login-button")
+    login_button.click()
+    file.write("Success click login\n")
+
+#Завершение программы---------
+def finish():
+    menu_button = driver.find_element(By.XPATH, '//*[@id="finish"]')
+    menu_button.click()
+    file.write("Finish_button is OK\n")
+    sleep(2)
+    print()
+    print("Thank you for your order!")
+    print()
+    print('Your order has been dispatched, and will arrive just as fast as the pony can get there!')
+    test_finish_redirect()
+    test_context_after_finish_is_correct()
+    menu_button = driver.find_element(By.XPATH, '//*[@id="back-to-products"]')
+    menu_button.click()
+    file.write("BackHome_button is OK\n")
+
+#Выход из профиля(скрытытое меню)--------------
+def logout():
+    menu_button = driver.find_element(By.XPATH, '//*[@id="react-burger-menu-btn"]')
+    menu_button.click()
+    sleep(3)
+    menu_logout = driver.find_element(By.XPATH, '//*[@id="logout_sidebar_link"]')
+    menu_logout.click()
+    print()
+    print('ПРОГРАММА ЗАВЕРШЕНА')
+    file.write("Success logout\n")
+
+
+#Находим кнопки для добавления в корзину---------------------------
+def select():
+    try:
+        # Получение списка товаров ------------------------
+        products = driver.find_elements(By.XPATH, '/html/body/div/div/div/div[2]/div/div/div/div')
+        print('Каталог товаров:')
+        prices = []  # Список для хранения цен выбранных товаров
+        selected_titles = []  # Список для хранения названий выбранных товаров
+
+        # Извлечение информации о каждом товаре
+        for index, product in enumerate(products, start=1):
+            title = product.find_element(By.CLASS_NAME, 'inventory_item_name').text
+            price = product.find_element(By.CLASS_NAME, 'inventory_item_price').text
+            print(f'{index} Название: {title}, Цена: {price}')
+            # Сохраним информацию о товарах
+            prices.append(float(price.replace('$', '').strip()))  # Преобразуем цену в число
+            selected_titles.append(title)
+
+        # Найти все кнопки с указанным классом
+        buttons = driver.find_elements(By.CLASS_NAME, 'pricebar')
+
+       # Вывод информации о найденных кнопках
+        for index, button in enumerate(buttons, start=1):
+            button_text = button.text.strip()
+            #print(f'{index}: Название кнопки: {button_text}')
+        print()
+            # Запрашиваем у пользователя номер кнопки для выбора
+        selected_indices =  input('Выберите номера позиций через запятую: ').split(',')
+        # Преобразуем введенные номера в целые числа и убираем пробелы
+        selected_indices = [int(index.strip()) - 1 for index in selected_indices]
+        print()
+        total_sum = 0.0  # Переменная для хранения общей суммы выбранных позиций
+        print()
+        # Проверяем каждый выбранный индекс на корректность
+        for index in selected_indices:
+            if 0 <= index < len(buttons):
+                # Клик по выбранной кнопке
+                buttons[index].click()
+                # Выводим название и цену выбранной позиции
+                title = selected_titles[index]
+                price = prices[index]
+                print(f'Выбрана позиция: {title}, Цена: {price}$')
+                total_sum += price  # Добавляем цену в общую сумму
+            else:
+                print(f'Недопустимый номер позиции: {index + 1}.')
+
+        # Выводим общую сумму выбранных позиций
+        print(f'Общая сумма выбранных позиций: {total_sum}$')
+        print()
+        sleep(1)
+
+    except ValueError:
+        print('Пожалуйста, введите допустимый номер позиции.')
+    except Exception as e:
+        print(f"Произошла ошибка: {e}")
+    finally:
+        print('Переходим в карточку заказа')
+        sleep(1)
+
+
+# Карточка заказа------------------
+def check_basket_items():
+    try:
+        print()
+        print('В карточке находятся:')
+        menu_button = driver.find_element(By.XPATH, '//*[@id="shopping_cart_container"]/a')
+        menu_button.click()
+        sleep(1)
+        products = driver.find_elements(By.CLASS_NAME, 'cart_item')
+
+        total_sum = 0.0  # Переменная для хранения общей суммы
+
+        for product in products:
+            title = product.find_element(By.CLASS_NAME, 'inventory_item_name').text
+            price = product.find_element(By.CLASS_NAME, 'inventory_item_price').text
+
+        # Преобразование цены в число
+            price = float(price.replace('$', '').strip())
+
+            total_sum += price  # Добавляем цену к общей сумме
+
+            print(f'Название: {title}, Цена: {price}')
+
+        # Выводим общую сумму заказа
+        print(f'Общая сумма заказа: ${total_sum:.2f}')
+
+    finally:
+        file.write("All products have been found\n")
+        print()
+
+#Вход в регистрацию заказа---------------
+def click_checkout():
+    menu_button = driver.find_element(By.XPATH, '//*[@id="checkout"]')
+    menu_button.click()
+    sleep(1)
+    file.write("The order page is OK\n")
+
+#Регистрация в форме оплаты--------------
+def login_order():
+    print('Для оплаты товара необходимо пройти регистрацию')
+    print()
+    print("Введите имя:")
+    user_name = driver.find_element(By.XPATH, '//*[@id="first-name"]')
+    login = input()
+
+    user_name.send_keys(login)
+    file.write("Success write login_order\n")
+    print()
+    print('Введите фамилию:')
+    pass_word = driver.find_element(By.XPATH, '//*[@id="last-name"]')
+    password = input()
+    pass_word.send_keys(password)
+    file.write("Success write second_order\n")
+    print()
+    print('Введите индекс')
+    zip_simbol = driver.find_element(By.XPATH, '//*[@id="postal-code"]')
+    postal = input()
+    zip_simbol.send_keys(postal)
+    sleep(3)
+    contin = driver.find_element(By.XPATH, '//*[@id="continue"]')
+    contin.click()
+    file.write("Success click Continue\n")
+# End of Sc functions----------------
+
+#Просмотр чека---------------------
+def check_items ():
+    print('В чеке находятся товары: ')
+    products = driver.find_elements(By.CLASS_NAME, 'cart_item')
+
+    total_sum = 0.0  # Переменная для хранения общей суммы
+
+    for product in products:
+        title = product.find_element(By.CLASS_NAME, 'inventory_item_name').text
+        price = product.find_element(By.CLASS_NAME, 'inventory_item_price').text
+
+        # Преобразование цены в число
+        price = float(price.replace('$', '').strip())
+
+        total_sum += price  # Добавляем цену к общей сумме
+
+        print(f'Название: {title}, Цена: {price}')
+
+    # Выводим общую сумму заказа
+    print()
+    print(f'Общая сумма заказа: ${total_sum:.2f}')
+    print()
+    print('Payment Information:')
+    number_check = driver.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/div[2]/div[2]').text
+    print(number_check)
+    print()
+    print('Shipping Information:')
+    info = driver.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/div[2]/div[4]').text
+    print(info)
+    print()
+    print('Price Total (Сумма с комиссией):')
+    fin = driver.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/div[2]/div[6]').text
+    print(fin)
+    tax = driver.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/div[2]/div[7]').text
+    print(tax)
+    full = driver.find_element(By.XPATH, '/html/body/div/div/div/div[2]/div/div[2]/div[8]').text
+    print(full)
+    file.write("All products have been found\n")
+    print()
+    print('Производим оплату')
+# Tests-----------------------------------------------------
+#Тест правильности адреса входа в профиль-----------
+def test_login_redirect():
+    correct_url = "https://www.saucedemo.com/inventory.html"
+    get_url = driver.current_url
+    assert correct_url == get_url, "test_login_redirect is Failed\n"
+    file.write("test_login_redirect is OK\n")
+
+#Тест правильности адреса страницы выхода-------------
+def test_finish_redirect():
+    correct_url = "https://www.saucedemo.com/checkout-complete.html"
+    get_url = driver.current_url
+    assert correct_url == get_url, "test_finish_redirect is Failed\n"
+    file.write("test_finish_redirect is OK\n")
+
+#Тест правильности адреса страницы корзины--------------
+def test_basket_redirect():
+    correct_url = "https://www.saucedemo.com/cart.html"
+    get_url = driver.current_url
+    assert correct_url == get_url, "test_basket_redirect is Failed\n"
+    file.write("test_basket_redirect is OK\n")
+
+#Тест правильности текста страницы выбора товара-------
+def test_context_after_login_is_correct():
+    correct_text = "Products"
+    current_text = driver.find_element(By.XPATH, '//*[@id="header_container"]/div[2]/span')
+
+    #driver.save_screenshot(f"sc_real_login\\screenshot_test_context_after_login_is_correct_"
+    #                       f"{datetime.datetime.now().strftime("%H.%M.%S-%d.%m.%Y")}.png")
+
+    assert correct_text == current_text.text, "test_context_after_login_is_correct is Failed"
+    file.write("test_context_after_login_is_correct is OK \n")
+
+#Тест правильности текста страницы выхода----------
+def test_context_after_finish_is_correct():
+    correct_text = "Thank you for your order!"
+    current_text = driver.find_element(By.XPATH, '//*[@id="checkout_complete_container"]/h2')
+
+    assert correct_text == current_text.text, "test_context_after_finish_is_correct is Failed"
+    file.write("test_context_after_finish_is_correct is OK \n")
+
+#Тест правильности текста страницы корзины-------------
+def test_context_basket_login_is_correct():
+    correct_text = "Your Cart"
+    current_text = driver.find_element(By.XPATH, '//*[@id="header_container"]/div[2]/span')
+
+    assert correct_text == current_text.text, "test_context_after_login_is_correct is Failed"
+    file.write("test_context_after_login_in_basket_is_correct is OK \n")
+
+#Тест проверки адреса страницы входа в профиль-----
+def test_logout_redirect():
+    correct_url = "https://www.saucedemo.com/"
+    get_url = driver.current_url
+    assert correct_url == get_url, "test_logout_redirect is Failed\n"
+    file.write("test_logout_redirect is OK\n")
+
+#Тест правильности текста страницы выхода-----------------
+def test_context_after_logout_is_correct():
+    correct_text = "Accepted usernames are:"
+    current_text = driver.find_element(By.XPATH, '//*[@id="login_credentials"]/h4')
+
+    assert correct_text == current_text.text, "test_context_after_logout_is_correct is Failed"
+    file.write("test_context_after_logout_is_correct is OK \n")
+#End of Test----------------------------------------
+
+#Процедура входа в программу----------
+def sc_real_login():
+    set_up()
+    login()
+    test_login_redirect()
+    test_context_after_login_is_correct()
+
+#Процедура выбора товара---------------
+def sc_select ():
+    select()
+    check_basket_items()
+    test_basket_redirect()
+    test_context_basket_login_is_correct()
+
+#Процедура входа в оплату товара-------------
+def sc_checkout():
+    click_checkout()
+    login_order()
+    check_items()
+    sleep(2)
+
+#Процедура выхода из профиля----------------------
+def sc_logout():
+    finish()
+    logout()
+    test_logout_redirect()
+    test_context_after_logout_is_correct()
+#----------------------------------
+sc_real_login()
+sc_select()
+sc_checkout()
+sc_logout()
+
+file.close()
+driver.close()
